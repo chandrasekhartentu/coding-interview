@@ -66,14 +66,45 @@ public class Deck
     /// Returns null if no cards remain.</returns>
     public Card NextCard()
     {
-        if (!Empty)
+        lock (_syncRoot)
         {
-            var nextCard = _stackOfCards.Pop();
-            return nextCard;
-        }
-        else
-        {
+            if (_stackOfCards.Count > 0)
+            {
+                return _stackOfCards.Pop();
+            }
+
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Deals a specific number of cards from the deck.
+    /// </summary>
+    /// <param name="count">The number of cards to deal.</param>
+    /// <returns>A readonly list containing the dealt cards.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when count is negative.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when there are not enough cards left.</exception>
+    public IReadOnlyList<Card> DealHand(int count)
+    {
+        if (count < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), "Count must be non-negative.");
+        }
+
+        lock (_syncRoot)
+        {
+            if (count > _stackOfCards.Count)
+            {
+                throw new InvalidOperationException($"Not enough cards remain to deal {count} cards.");
+            }
+
+            var hand = new List<Card>(count);
+            for (int i = 0; i < count; i++)
+            {
+                hand.Add(_stackOfCards.Pop());
+            }
+
+            return hand.AsReadOnly();
         }
     }
 
@@ -82,17 +113,20 @@ public class Deck
     /// </summary>
     public void Shuffle()
     {
-        var cards = _stackOfCards.ToArray();
-        var random = new Random();
-        for (int i = cards.Length - 1; i > 0; i--)
+        lock (_syncRoot)
         {
-            int j = random.Next(i + 1);
-            (cards[i], cards[j]) = (cards[j], cards[i]);
-        }
-        _stackOfCards.Clear();
-        foreach (var card in cards)
-        {
-            _stackOfCards.Push(card);
+            var cards = _stackOfCards.ToArray();
+            var random = new Random();
+            for (int i = cards.Length - 1; i > 0; i--)
+            {
+                int j = random.Next(i + 1);
+                (cards[i], cards[j]) = (cards[j], cards[i]);
+            }
+            _stackOfCards.Clear();
+            foreach (var card in cards)
+            {
+                _stackOfCards.Push(card);
+            }
         }
     }
 
