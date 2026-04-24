@@ -24,11 +24,38 @@ public class Deck
     /// <returns></returns>
     public static Deck NewDeck()
     {
-        return new Deck(
-            Enum.GetValues<Suit>().SelectMany(suit =>
-                Enum.GetValues<Rank>().Select(rank =>
-                    new Card(rank, suit))
-        ));
+        return new Deck(BuildDefaultDeck());
+    }
+
+    private static IEnumerable<Card> BuildDefaultDeck()
+    {
+        return Enum.GetValues<Suit>().SelectMany(suit =>
+            Enum.GetValues<Rank>().Select(rank =>
+                new Card(rank, suit)));
+    }
+
+    /// <summary>
+    /// Resets the deck back to a full, ordered deck.
+    /// </summary>
+    public void Reset()
+    {
+        lock (_syncRoot)
+        {
+            _stackOfCards.Clear();
+            foreach (var card in BuildDefaultDeck())
+            {
+                _stackOfCards.Push(card);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resets the deck and shuffles it.
+    /// </summary>
+    public void ResetAndShuffle()
+    {
+        Reset();
+        Shuffle();
     }
 
     /// <summary>
@@ -74,6 +101,50 @@ public class Deck
             }
 
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Returns the next card without removing it from the deck.
+    /// </summary>
+    /// <returns>The next card, or null if the deck is empty.</returns>
+    public Card Peek()
+    {
+        lock (_syncRoot)
+        {
+            return _stackOfCards.Count > 0 ? _stackOfCards.Peek() : null;
+        }
+    }
+
+    /// <summary>
+    /// Returns the next <paramref name="count"/> cards without removing them from the deck.
+    /// </summary>
+    /// <param name="count">The number of cards to peek.</param>
+    /// <returns>A read-only list containing the next cards in deck order.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when count is negative.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when there are not enough cards left.</exception>
+    public IReadOnlyList<Card> Peek(int count)
+    {
+        if (count < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(count), "Count must be non-negative.");
+        }
+
+        lock (_syncRoot)
+        {
+            if (count > _stackOfCards.Count)
+            {
+                throw new InvalidOperationException($"Not enough cards remain to peek {count} cards.");
+            }
+
+            var cards = _stackOfCards.ToArray();
+            var peeked = new List<Card>(count);
+            for (int i = 0; i < count; i++)
+            {
+                peeked.Add(cards[i]);
+            }
+
+            return peeked.AsReadOnly();
         }
     }
 
@@ -131,3 +202,5 @@ public class Deck
     }
 
 }
+
+
