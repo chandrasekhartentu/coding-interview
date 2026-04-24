@@ -58,4 +58,23 @@ public class Deck
         }
     }
 
+    /// <summary>
+    /// Shuffles the deck randomly.
+    /// </summary>
+    public void Shuffle()
+    {
+        var cards = _stackOfCards.ToArray();
+        var random = new Random();
+        for (int i = cards.Length - 1; i > 0; i--)
+        {
+            int j = random.Next(i + 1);
+            (cards[i], cards[j]) = (cards[j], cards[i]);
+        }
+        _stackOfCards.Clear();
+        foreach (var card in cards)
+        {
+            _stackOfCards.Push(card);
+        }
+    }
+
 }
