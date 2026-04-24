@@ -1,49 +1,80 @@
 namespace Blackbaud.Interview.Cards;
 
 /// <summary>
-/// A single card, with a suit and rank
+/// A deck of cards
 /// </summary>
-public record Card
+public class Deck
 {
-    /// <summary>
-    /// The rank of this card
-    /// </summary>
-    public Rank Rank { get; init; }
+    private readonly Stack<Card> _stackOfCards;
 
     /// <summary>
-    /// The suit of this card
+    /// Private constructor for a new deck of <paramref name="cards"/>.
+    /// Use Deck.NewDeck() static factory method.
     /// </summary>
-    public Suit Suit { get; init; }
-
-    /// <summary>
-    /// Creates a new card.
-    /// </summary>
-    /// <param name="rank"></param>
-    /// <param name="suit"></param>
-    public Card(Rank rank, Suit suit)
+    /// <param name="cards"></param>
+    private Deck(IEnumerable<Card> cards)
     {
-        Rank = rank;
-        Suit = suit;
+        _stackOfCards = new Stack<Card>(cards);
     }
 
     /// <summary>
-    /// Returns a string representation of this card as {Rank} of {Suit}
+    /// Creates and returns a new deck of cards.
     /// </summary>
     /// <returns></returns>
-    public override string ToString()
+    public static Deck NewDeck()
     {
-        return $"{Rank} of {Suit}";
+        return new Deck(
+            Enum.GetValues<Suit>().SelectMany(suit =>
+                Enum.GetValues<Rank>().Select(rank =>
+                    new Card(rank, suit))
+        ));
     }
 
     /// <summary>
-    /// Returns an abbreviated string representation of this card as {R}{S}
+    /// The number of remaining cards in the deck
     /// </summary>
-    /// <returns></returns>
-    public string ToShortString()
+    public int RemainingCards => _stackOfCards.Count;
+
+    /// <summary>
+    /// Returns true if there are no remaining cards in the deck
+    /// </summary>
+    public bool Empty => RemainingCards == 0;
+
+    /// <summary>
+    /// Removes the next card from the deck.
+    /// </summary>
+    /// <returns>The next card from the deck.
+    /// Returns null if no cards remain.</returns>
+    public Card NextCard()
     {
-        var shortRank = Rank.ToShortString();
-        var shortSuit = Suit.ToShortString();
-        return $"{shortRank}{shortSuit}";
+        if (!Empty)
+        {
+            var nextCard = _stackOfCards.Pop();
+            return nextCard;
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Shuffles the deck randomly.
+    /// </summary>
+    public void Shuffle()
+    {
+        var cards = _stackOfCards.ToArray();
+        var random = new Random();
+        for (int i = cards.Length - 1; i > 0; i--)
+        {
+            int j = random.Next(i + 1);
+            (cards[i], cards[j]) = (cards[j], cards[i]);
+        }
+        _stackOfCards.Clear();
+        foreach (var card in cards)
+        {
+            _stackOfCards.Push(card);
+        }
     }
 
 }
